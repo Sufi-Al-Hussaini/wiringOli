@@ -57,17 +57,6 @@
 #define SYSFS_GPIO_DIR 		"/sys/class/gpio"
 #define MAX_BUF 			64
 
-#ifdef USE_SYSFS_GPIO
-#define POLL_TIMEOUT (3 * 1000) /* 3 seconds */
-// Time for easy calculations
-static uint64_t epochMilli, epochMicro;
-
-static int pinPass = -1;
-static char pinPassName[10] = {};
-static void (*callback)(void) = NULL;
-static int gpio_fd;
-#endif
-
 /****************************************************************
  * gpio_export
  ****************************************************************/

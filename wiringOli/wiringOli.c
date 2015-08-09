@@ -306,7 +306,7 @@ static void *interruptHandler (void *arg)
 {
   int myPin ;
 
-  (void)piHiPri (55) ;  // Only effective if we run as root
+  (void)oliHiPri (55) ;  // Only effective if we run as root
 
   myPin   = pinPass ;
   pinPass = -1 ;
@@ -326,8 +326,8 @@ int wiringOliISR (int pin, char *pinName, int mode, void (*function)(void))
   pthread_attr_t attr;
   char *modeS ;
   char fName   [64] ;
-  char  pinS [8] ;
-  pid_t pid ;
+//  char  pinS [8] ;
+//  pid_t pid ;
   int   count, i ;
   char  c ;
   int   bcmGpioPin ;

@@ -53,8 +53,10 @@ fi
       target=i2c
       echo "Building wiringOli with the I2C helper libraries."
     else
-      target=all
-      echo "The wiringOli I2C helper libraries will not be built."
+      #target=all
+      #echo "The wiringOli I2C helper libraries will not be built."
+      echo "Dependency failure: Install libi2c-dev package first"
+      exit
     fi
   fi
 
