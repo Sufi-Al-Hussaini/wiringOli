@@ -28,7 +28,7 @@
 #include "wiringOli.h"
 #include "softPwm.h"
 
-#define	MAX_PINS 128
+#define	MAX_PINS 278
 
 // The PWM Frequency is derived from the "pulse time" below. Essentially,
 //	the frequency is a function of the range and this pulse time.
@@ -93,7 +93,7 @@ static OLI_THREAD(softPwmThread)
 
 void softPwmWrite(int pin, int value)
 {
-  pin &= 63;
+  // pin &= 278;
 
   if (value < 0)
     value = 0;

@@ -43,7 +43,7 @@ LIBS    =
 ###############################################################################
 
 SRC        =        wiringOli.c gpio_lib.c oliHiPri.c oliExt.c interrupt.c wiringSerial.c	\
-		softPwm.c oliThread.c i2cLcd.c wiringOliI2C.c GSM.c wiringShift.c
+		softPwm.c oliThread.c i2cLcd.c GSM.c wiringShift.c
 
 SRC_I2C        =        wiringOliI2C.c
 

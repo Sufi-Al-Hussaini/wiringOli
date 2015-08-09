@@ -26,48 +26,122 @@
 #include "interrupt.h"
 
 // Pin definition
-static int pinToGpio[128] =
+// static int pinToGpio[128] =
+// {
+//   SUNXI_GPG(0), SUNXI_GPG(1), SUNXI_GPG(2), SUNXI_GPG(3), SUNXI_GPG(4), SUNXI_GPG(5),        // GPIO-1 (12 I/O pins)
+//   SUNXI_GPG(6), SUNXI_GPG(7), SUNXI_GPG(8), SUNXI_GPG(9), SUNXI_GPG(10), SUNXI_GPG(11),
+//   SUNXI_GPI(0), SUNXI_GPI(1), SUNXI_GPI(2), SUNXI_GPI(3), SUNXI_GPI(10), SUNXI_GPI(11),      // GPIO-2 (29 I/O pins)
+//   SUNXI_GPI(14), SUNXI_GPI(15),
+//   SUNXI_GPC(3), SUNXI_GPC(7), SUNXI_GPC(16), SUNXI_GPC(17), SUNXI_GPC(18), SUNXI_GPC(23),
+//   SUNXI_GPC(24), SUNXI_GPE(0), SUNXI_GPE(1), SUNXI_GPE(2), SUNXI_GPE(3), SUNXI_GPE(4),
+//   SUNXI_GPE(5), SUNXI_GPE(6), SUNXI_GPE(7), SUNXI_GPE(8), SUNXI_GPE(9), SUNXI_GPE(10),
+//   SUNXI_GPE(11), SUNXI_GPI(14), SUNXI_GPI(15),
+//   SUNXI_GPH(0), SUNXI_GPH(2), SUNXI_GPH(7), SUNXI_GPH(9), SUNXI_GPH(10), SUNXI_GPH(11),      // GPIO-3 (40 I/O pins)
+//   SUNXI_GPH(12), SUNXI_GPH(13), SUNXI_GPH(14), SUNXI_GPH(15), SUNXI_GPH(16), SUNXI_GPH(17),
+//   SUNXI_GPH(18), SUNXI_GPH(19), SUNXI_GPH(20), SUNXI_GPH(21), SUNXI_GPH(22), SUNXI_GPH(23),
+//   SUNXI_GPH(24), SUNXI_GPH(25), SUNXI_GPH(26), SUNXI_GPH(27),
+//   SUNXI_GPB(3), SUNXI_GPB(4), SUNXI_GPB(5), SUNXI_GPB(6), SUNXI_GPB(7), SUNXI_GPB(8),
+//   SUNXI_GPB(10), SUNXI_GPB(11), SUNXI_GPB(12), SUNXI_GPB(13), SUNXI_GPB(14), SUNXI_GPB(15),
+//   SUNXI_GPB(16), SUNXI_GPB(17), SUNXI_GPH(24), SUNXI_GPH(25), SUNXI_GPH(26), SUNXI_GPH(27),  
+//   SUNXI_GPB(1), SUNXI_GPB(0),                                                                // GPIO-2 I2C0 - SDA, SCL
+//   SUNXI_GPB(22), SUNXI_GPB(23),                                                              //        UART0 - Tx, Rx
+//   SUNXI_GPI(12), SUNXI_GPI(13),                                                              // UEXT1  UART6 - Tx, Rx
+//   SUNXI_GPB(21), SUNXI_GPB(20),                                                              //        I2C2 - SDA, SCL
+//   SUNXI_GPC(21), SUNXI_GPC(22), SUNXI_GPC(20), SUNXI_GPC(19),                                //        SPI2 - MOSI, MISO, CLK, CS0
+//   SUNXI_GPI(20), SUNXI_GPI(21),                                                              // UEXT2  UART7 - Tx, Rx
+//   SUNXI_GPB(19), SUNXI_GPB(18),                                                              //        I2C1 - SDA, SCL
+//   SUNXI_GPI(18), SUNXI_GPI(19), SUNXI_GPI(17), SUNXI_GPI(16),                                //        SPI1 - MOSI, MISO, CLK, CS0
+
+// // Padding:
+
+//   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,                            // ... 111
+//   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,                                                    // ... 127
+// };
+
+static int pinToGpio[278] =
 {
-  SUNXI_GPG(0), SUNXI_GPG(1), SUNXI_GPG(2), SUNXI_GPG(3), SUNXI_GPG(4), SUNXI_GPG(5),        // GPIO-1 (12 I/O pins)
+  SUNXI_GPA(0), SUNXI_GPA(1), SUNXI_GPA(2), SUNXI_GPA(3), SUNXI_GPA(4), SUNXI_GPA(5),
+  SUNXI_GPA(6), SUNXI_GPA(7), SUNXI_GPA(8), SUNXI_GPA(9), SUNXI_GPA(10), SUNXI_GPA(11),
+  SUNXI_GPA(12), SUNXI_GPA(13), SUNXI_GPA(14), SUNXI_GPA(15), SUNXI_GPA(16), SUNXI_GPA(17),
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  SUNXI_GPB(0), SUNXI_GPB(1), SUNXI_GPB(2), SUNXI_GPB(3), SUNXI_GPB(4), SUNXI_GPB(5),
+  SUNXI_GPB(6), SUNXI_GPB(7), SUNXI_GPB(8), SUNXI_GPB(9), SUNXI_GPB(10), SUNXI_GPB(11),
+  SUNXI_GPB(12), SUNXI_GPB(13), SUNXI_GPB(14), SUNXI_GPB(15), SUNXI_GPB(16), SUNXI_GPB(17),
+  SUNXI_GPB(18), SUNXI_GPB(19), SUNXI_GPB(20), SUNXI_GPB(21), SUNXI_GPB(22), SUNXI_GPB(23),
+  -1, -1, -1, -1, -1, -1, -1, -1,
+  SUNXI_GPC(0), SUNXI_GPC(1), SUNXI_GPC(2), SUNXI_GPC(3), SUNXI_GPC(4), SUNXI_GPC(5),
+  SUNXI_GPC(6), SUNXI_GPC(7), SUNXI_GPC(8), SUNXI_GPC(9), SUNXI_GPC(10), SUNXI_GPC(11),
+  SUNXI_GPC(12), SUNXI_GPC(13), SUNXI_GPC(14), SUNXI_GPC(15), SUNXI_GPC(16), SUNXI_GPC(17),
+  SUNXI_GPC(18), SUNXI_GPC(19), SUNXI_GPC(20), SUNXI_GPC(21), SUNXI_GPC(22), SUNXI_GPC(23),
+  SUNXI_GPC(24),
+  -1, -1, -1, -1, -1, -1, -1,
+  SUNXI_GPD(0), SUNXI_GPD(1), SUNXI_GPD(2), SUNXI_GPD(3), SUNXI_GPD(4), SUNXI_GPD(5),
+  SUNXI_GPD(6), SUNXI_GPD(7), SUNXI_GPD(8), SUNXI_GPD(9), SUNXI_GPD(10), SUNXI_GPD(11),
+  SUNXI_GPD(12), SUNXI_GPD(13), SUNXI_GPD(14), SUNXI_GPD(15), SUNXI_GPD(16), SUNXI_GPD(17),
+  SUNXI_GPD(18), SUNXI_GPD(19), SUNXI_GPD(20), SUNXI_GPD(21), SUNXI_GPD(22), SUNXI_GPD(23),
+  SUNXI_GPD(24), SUNXI_GPD(25), SUNXI_GPD(26), SUNXI_GPD(27),
+  -1, -1, -1, -1,
+  SUNXI_GPE(0), SUNXI_GPE(1), SUNXI_GPE(2), SUNXI_GPE(3), SUNXI_GPE(4), SUNXI_GPE(5),
+  SUNXI_GPE(6), SUNXI_GPE(7), SUNXI_GPE(8), SUNXI_GPE(9), SUNXI_GPE(10), SUNXI_GPE(11),
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  SUNXI_GPF(0), SUNXI_GPF(1), SUNXI_GPF(2), SUNXI_GPF(3), SUNXI_GPF(4), SUNXI_GPF(5),
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1,
+  SUNXI_GPG(0), SUNXI_GPG(1), SUNXI_GPG(2), SUNXI_GPG(3), SUNXI_GPG(4), SUNXI_GPG(5),
   SUNXI_GPG(6), SUNXI_GPG(7), SUNXI_GPG(8), SUNXI_GPG(9), SUNXI_GPG(10), SUNXI_GPG(11),
-  SUNXI_GPI(0), SUNXI_GPI(1), SUNXI_GPI(2), SUNXI_GPI(3), SUNXI_GPI(10), SUNXI_GPI(11),      // GPIO-2 (29 I/O pins)
-  SUNXI_GPI(14), SUNXI_GPI(15),
-  SUNXI_GPC(3), SUNXI_GPC(7), SUNXI_GPC(16), SUNXI_GPC(17), SUNXI_GPC(18), SUNXI_GPC(23),
-  SUNXI_GPC(24), SUNXI_GPE(0), SUNXI_GPE(1), SUNXI_GPE(2), SUNXI_GPE(3), SUNXI_GPE(4),
-  SUNXI_GPE(5), SUNXI_GPE(6), SUNXI_GPE(7), SUNXI_GPE(8), SUNXI_GPE(9), SUNXI_GPE(10),
-  SUNXI_GPE(11), SUNXI_GPI(14), SUNXI_GPI(15),
-  SUNXI_GPH(0), SUNXI_GPH(2), SUNXI_GPH(7), SUNXI_GPH(9), SUNXI_GPH(10), SUNXI_GPH(11),      // GPIO-3 (40 I/O pins)
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  SUNXI_GPH(0), SUNXI_GPH(1), SUNXI_GPH(2), SUNXI_GPH(3), SUNXI_GPH(4), SUNXI_GPH(5),
+  SUNXI_GPH(6), SUNXI_GPH(7), SUNXI_GPH(8), SUNXI_GPH(9), SUNXI_GPH(10), SUNXI_GPH(11),
   SUNXI_GPH(12), SUNXI_GPH(13), SUNXI_GPH(14), SUNXI_GPH(15), SUNXI_GPH(16), SUNXI_GPH(17),
   SUNXI_GPH(18), SUNXI_GPH(19), SUNXI_GPH(20), SUNXI_GPH(21), SUNXI_GPH(22), SUNXI_GPH(23),
   SUNXI_GPH(24), SUNXI_GPH(25), SUNXI_GPH(26), SUNXI_GPH(27),
-  SUNXI_GPB(3), SUNXI_GPB(4), SUNXI_GPB(5), SUNXI_GPB(6), SUNXI_GPB(7), SUNXI_GPB(8),
-  SUNXI_GPB(10), SUNXI_GPB(11), SUNXI_GPB(12), SUNXI_GPB(13), SUNXI_GPB(14), SUNXI_GPB(15),
-  SUNXI_GPB(16), SUNXI_GPB(17), SUNXI_GPH(24), SUNXI_GPH(25), SUNXI_GPH(26), SUNXI_GPH(27),  
-  SUNXI_GPB(1), SUNXI_GPB(0),                                                                // GPIO-2 I2C0 - SDA, SCL
-  SUNXI_GPB(22), SUNXI_GPB(23),                                                              //        UART0 - Tx, Rx
-  SUNXI_GPI(12), SUNXI_GPI(13),                                                              // UEXT1  UART6 - Tx, Rx
-  SUNXI_GPB(21), SUNXI_GPB(20),                                                              //        I2C2 - SDA, SCL
-  SUNXI_GPC(21), SUNXI_GPC(22), SUNXI_GPC(20), SUNXI_GPC(19),                                //        SPI2 - MOSI, MISO, CLK, CS0
-  SUNXI_GPI(20), SUNXI_GPI(21),                                                              // UEXT2  UART7 - Tx, Rx
-  SUNXI_GPB(19), SUNXI_GPB(18),                                                              //        I2C1 - SDA, SCL
-  SUNXI_GPI(18), SUNXI_GPI(19), SUNXI_GPI(17), SUNXI_GPI(16),                                //        SPI1 - MOSI, MISO, CLK, CS0
-
-// Padding:
-
-  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,                            // ... 111
-  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,                                                    // ... 127
+  -1, -1, -1, -1,
+  SUNXI_GPI(0), SUNXI_GPI(1), SUNXI_GPI(2), SUNXI_GPI(3), SUNXI_GPI(4), SUNXI_GPI(5),
+  SUNXI_GPI(6), SUNXI_GPI(7), SUNXI_GPI(8), SUNXI_GPI(9), SUNXI_GPI(10), SUNXI_GPI(11),
+  SUNXI_GPI(12), SUNXI_GPI(13), SUNXI_GPI(14), SUNXI_GPI(15), SUNXI_GPI(16), SUNXI_GPI(17),
+  SUNXI_GPI(18), SUNXI_GPI(19), SUNXI_GPI(20), SUNXI_GPI(21)
 };
 
 // Translation between pin number and gpio number from fex
-static int convPinToGpio[81] = {55, 56, 57, 58, 59, 60,  0,  0,  0,  0, 
-                                 0,  0, 61, 62,  0,  0,  0, 53, 49, 50, 
-                                51, 52, 54,  0,  0,  0,  0, 37, 38, 39,
-                                40, 41, 42, 43, 44, 45, 46, 47, 48,  0,
-                                 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-                                10, 11, 12, 13, 14, 15, 16, 31, 32,  0,
-                                 0,  0,  0, 17, 18, 19, 20, 21, 22, 23,
-                                24, 25, 26, 27, 28, 29, 30, 33, 34, 35,
-                                36};
+// static int convPinToGpio[81] = {55, 56, 57, 58, 59, 60,  0,  0,  0,  0, 
+//                                  0,  0, 61, 62,  0,  0,  0, 53, 49, 50, 
+//                                 51, 52, 54,  0,  0,  0,  0, 37, 38, 39,
+//                                 40, 41, 42, 43, 44, 45, 46, 47, 48,  0,
+//                                  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+//                                 10, 11, 12, 13, 14, 15, 16, 31, 32,  0,
+//                                  0,  0,  0, 17, 18, 19, 20, 21, 22, 23,
+//                                 24, 25, 26, 27, 28, 29, 30, 33, 34, 35,
+//                                 36};
+
+// sysfs gpio translation (w.r.t. Igor's oA20-micro debian 4.0.4)
+static int convPinToGpio[278] = {  0, 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 ,
+                                  11 , 12 , 13 , 14 , 15 , 16 , 17 , 18 , 19 , 20 ,
+                                  21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 ,
+                                  31 , 32 , 33 , 34 , 35 , 36 , 37 , 38 , 39 , 40 ,
+                                  41 , 42 , 43 , 44 , 45 , 46 , 47 , 48 , 49 , 50 ,
+                                  51 , 52 , 53 , 54 , 55 , 56 , 57 , 58 , 59 , 60 ,
+                                  61 , 62 , 63 , 64 , 65 , 66 , 67 , 68 , 69 , 70 ,
+                                  71 , 72 , 73 , 74 , 75 , 76 , 77 , 78 , 79 , 80 ,
+                                  81 , 82 , 83 , 84 , 85 , 86 , 87 , 88 , 89 , 90 ,
+                                  91 , 92 , 93 , 94 , 95 , 96 , 97 , 98 , 99 , 100 ,
+                                  101 , 102 , 103 , 104 , 105 , 106 , 107 , 108 , 109 , 110 , 
+                                  111 , 112 , 113 , 114 , 115 , 116 , 117 , 118 , 119 , 120 ,
+                                  121 , 122 , 123 , 124 , 125 , 126 , 127 , 128 , 129 , 130 ,
+                                  131 , 132 , 133 , 134 , 135 , 136 , 137 , 138 , 139 , 140 ,
+                                  141 , 142 , 143 , 144 , 145 , 146 , 147 , 148 , 149 , 150 ,
+                                  151 , 152 , 153 , 154 , 155 , 156 , 157 , 158 , 159 , 160 ,
+                                  161 , 162 , 163 , 164 , 165 , 166 , 167 , 168 , 169 , 170 ,
+                                  171 , 172 , 173 , 174 , 175 , 176 , 177 , 178 , 179 , 180 ,
+                                  181 , 182 , 183 , 184 , 185 , 186 , 187 , 188 , 189 , 190 ,
+                                  191 , 192 , 193 , 194 , 195 , 196 , 197 , 198 , 199 , 200 ,
+                                  201 , 202 , 203 , 204 , 205 , 206 , 207 , 208 , 209 , 210 ,
+                                  211 , 212 , 213 , 214 , 215 , 216 , 217 , 218 , 219 , 220 ,
+                                  221 , 222 , 223 , 224 , 225 , 226 , 227 , 228 , 229 , 230 ,
+                                  231 , 232 , 233 , 234 , 235 , 236 , 237 , 238 , 239 , 240 ,
+                                  241 , 242 , 243 , 244 , 245 , 246 , 247 , 248 , 249 , 250 ,
+                                  251 , 252 , 253 , 254 , 255 , 256 , 257 , 258 , 259 , 260 ,
+                                  261 , 262 , 263 , 264 , 265 , 266 , 267 , 268 , 269 , 270 ,
+                                  271 , 272 , 273 , 274 , 275 , 276 , 277 };
 
 // Time for easy calculations
 static uint64_t epochMilli, epochMicro;
@@ -80,7 +154,8 @@ static uint64_t epochMilli, epochMicro;
 int pinWiringOli(int pin)
 {
   // To be sure to have a correct pin number
-  return pinToGpio[pin & 127];
+  // return pinToGpio[pin & 127];
+  return pinToGpio[pin];
 }
 
 /*

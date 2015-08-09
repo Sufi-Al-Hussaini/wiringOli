@@ -39,7 +39,7 @@
 #include <sched.h>
 
 #include "wiringOli.h"
-// #include "gpio_lib.h"
+
 
 unsigned int SUNXI_PIO_BASE = 0;
 static volatile long int *gpio_map = NULL;
@@ -158,30 +158,31 @@ int sunxi_gpio_input(unsigned int pin)
 /*
  * sunxi_gpio_set_pull:
  *	Set the internal pull resistor
- *	pull=0 -> pull disable 1 -> pull-up 2 -> pull-down
+ *	val=0 -> pull disable 1 -> pull-up 2 -> pull-down
  *********************************************************************************
  */
-int sunxi_gpio_set_pull(unsigned int pin, unsigned int pull)
+int sunxi_gpio_set_pull(unsigned int pin, unsigned int val)
 {
-	unsigned int cfg;
-    unsigned int bank = GPIO_BANK(pin);
-    unsigned int index = GPIO_PUL_INDEX(pin);
-    unsigned int offset = GPIO_PUL_OFFSET(pin);
+	unsigned int pull;
+	unsigned int bank = GPIO_BANK(pin);
+	unsigned int index = GPIO_PULL_INDEX(pin);
+	unsigned int offset = GPIO_PULL_OFFSET(pin);
 
-    if (SUNXI_PIO_BASE == 0) {
+	if(SUNXI_PIO_BASE == 0)
+    {
         return -1;
     }
+	struct sunxi_gpio *pio = &((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
 
-    struct sunxi_gpio *pio =
-            &((struct sunxi_gpio_reg *) SUNXI_PIO_BASE)->gpio_bank[bank];
+	// pull = readl(&pio->pull[0] + index);
+	pull = *(&pio->pull[0] + index);
+	pull &= ~(0xf << offset);
+	pull |= val << offset;
 
-    cfg = *(&pio->pull[0] + index);
-    cfg &= ~(0x3 << offset);
-    cfg |= pull << offset;
+	//writel(pull, &pio->pull[0] + index);
+    *(&pio->pull[0] + index) = pull;
 
-    *(&pio->pull[0] + index) = cfg;
-
-    return 0;
+	return 0;
 }
 
 void sunxi_gpio_cleanup(void)
