@@ -168,6 +168,18 @@
 /*-----------End------------*/
 /*Macros imported from pyA20*/
 
+// Interrupt levels
+
+#define INT_EDGE_SETUP      0
+#define INT_EDGE_FALLING    1
+#define INT_EDGE_RISING     2
+#define INT_EDGE_BOTH       3
+
+// Failure modes
+
+#define WPI_FATAL   (1==1)
+#define WPI_ALMOST  (1==2)
+
 #define SUNXI_GPIO_A    0
 #define SUNXI_GPIO_B    1
 #define SUNXI_GPIO_C    2
@@ -274,6 +286,7 @@ extern void digitalWrite(int pin, int value);
 
 // Interrupt
 extern int waitForInterrupt(int pin, int mS);
+extern int wiringOliISR (int pin, char* pinName, int mode, void (*function)(void));
 
 // Threads
 extern int oliThreadCreate(void *(*fn)(void *)) ;

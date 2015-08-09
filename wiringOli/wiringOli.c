@@ -58,6 +58,36 @@
 //   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,                                                    // ... 127
 // };
 
+static int sysFds [278] =
+{
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1
+} ;
+
+static volatile int    pinPass = -1 ;
+static volatile char    pinPassName[10] = {};
+static pthread_mutex_t pinMutex ;
+
+// ISR Data
+
+static void (*isrFunctions [278])(void) ;
+
 static int pinToGpio[278] =
 {
   SUNXI_GPA(0), SUNXI_GPA(1), SUNXI_GPA(2), SUNXI_GPA(3), SUNXI_GPA(4), SUNXI_GPA(5),
@@ -223,27 +253,148 @@ void digitalWrite(int pin, int value)
 int waitForInterrupt(int pin, int mS)
 {
   struct pollfd polls;
-  int gpio_fd, rc;
+  int fd, rc;
   uint8_t c ;
 
   // Get pin A20 number
-  pin = pinWiringOli(pin);
+  // pin = pinGpio(pin);
 
-  gpio_export(pin);
-  gpio_set_dir(pin, 0);
-  // Set interrupt edge, can be "none", "rising", "falling", or "both"
-  gpio_set_edge(pin, "rising");
-  gpio_fd = gpio_fd_open(pin);
-
-	polls.fd = gpio_fd;
+  // gpio_export(pin);
+  // gpio_set_dir(pin, 0);
+  // // Set interrupt edge, can be "none", "rising", "falling", or "both"
+  // gpio_set_edge(pin, "rising");
+  // fd = gpio_fd_open(pin);
+  if ((fd = sysFds [pin]) == -1)
+    return -2 ;
+  // printf("Waiting on fd: %d of pin: %d\n", fd, pin);
+	polls.fd = fd;
 	polls.events = POLLPRI;
 
 	rc = poll(&polls, 1, mS);      
 
 	(void)read(polls.fd, &c, 1);
+  lseek (fd, 0, SEEK_SET) ;
 
-	gpio_fd_close(gpio_fd);
+	// gpio_fd_close(fd);
 	return rc;
+}
+
+
+// int piHiPri (const int pri)
+// {
+//   struct sched_param sched ;
+
+//   memset (&sched, 0, sizeof(sched)) ;
+
+//   if (pri > sched_get_priority_max (SCHED_RR))
+//     sched.sched_priority = sched_get_priority_max (SCHED_RR) ;
+//   else
+//     sched.sched_priority = pri ;
+
+//   return sched_setscheduler (0, SCHED_RR, &sched) ;
+// }
+
+/*
+ * interruptHandler:
+ *  This is a thread and gets started to wait for the interrupt we're
+ *  hoping to catch. It will call the user-function when the interrupt
+ *  fires.
+ *********************************************************************************
+ */
+
+static void *interruptHandler (void *arg)
+{
+  int myPin ;
+
+  (void)piHiPri (55) ;  // Only effective if we run as root
+
+  myPin   = pinPass ;
+  pinPass = -1 ;
+
+  for (;;)
+    if (waitForInterrupt (myPin, -1) > 0) {
+      // printf("Calling isr\n");
+      isrFunctions [myPin] () ;
+    }
+
+  return NULL ;
+}
+
+int wiringOliISR (int pin, char *pinName, int mode, void (*function)(void))
+{
+  pthread_t threadId ;
+  pthread_attr_t attr;
+  char *modeS ;
+  char fName   [64] ;
+  char  pinS [8] ;
+  pid_t pid ;
+  int   count, i ;
+  char  c ;
+  int   bcmGpioPin ;
+  // char pinName[10] = {};
+
+  bcmGpioPin = pinGpio(pin) ;
+
+  if (mode != INT_EDGE_SETUP)
+  {
+    /**/ if (mode == INT_EDGE_FALLING)
+      modeS = "falling" ;
+    else if (mode == INT_EDGE_RISING)
+      modeS = "rising" ;
+    else
+      modeS = "both" ;
+
+    // There's really no need to fork now,
+    // as we're no longer using gpio utility here!
+    // if ((pid = fork ()) < 0) {
+    //   printf("Failed to fork!\n");
+    //   return -1;
+    // }
+
+    // if (pid == 0) // Child, exec
+    // {
+      gpio_export(bcmGpioPin);
+      gpio_set_dir(bcmGpioPin, 0, pinName);
+      gpio_set_edge(bcmGpioPin, modeS, pinName);
+      // sysFds [bcmGpioPin] = gpio_fd_open(bcmGpioPin, pinName);
+    // }
+    // else    // Parent, wait
+    //   wait (NULL) ;
+  }
+
+  if (sysFds [bcmGpioPin] == -1)
+  {
+    sprintf (fName, "/sys/class/gpio/gpio%d%s/value", bcmGpioPin, pinName) ;
+    // printf("Opening %s for ISR!\n", fName);
+    // if ((sysFds [bcmGpioPin] = open (fName, O_RDWR)) < 0) {
+    if ((sysFds [bcmGpioPin] = gpio_fd_open (bcmGpioPin, pinName)) < 0) {
+      printf("Failed to gpio_fd_open!\n");
+      return -1;
+    }
+  }
+
+// Clear any initial pending interrupt
+
+  ioctl (sysFds [bcmGpioPin], FIONREAD, &count) ;
+  for (i = 0 ; i < count ; ++i)
+    read (sysFds [bcmGpioPin], &c, 1) ;
+
+  isrFunctions [bcmGpioPin] = function ;
+  pinPass = bcmGpioPin ;
+  strcpy(pinPassName, pinName);
+
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  pthread_mutex_lock (&pinMutex) ;
+
+  pthread_create (&threadId, &attr, interruptHandler, NULL) ;
+  while (pinPass != -1)
+    delay (1) ;
+
+  pthread_mutex_unlock (&pinMutex) ;
+  pthread_attr_destroy ( &attr );
+
+  return 0 ;
 }
 
 /*
